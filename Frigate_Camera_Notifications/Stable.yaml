@@ -62,6 +62,15 @@ blueprint:
 
         Note: If the group contains both mobile devices and TVs, the TV will not display the snapshot unless "TV notifications" is set to true. However, this will stop Android phones from receiving thumbnails.
       default: ""
+    notify_ntfy:
+      name: ntfy Notification Topic (Optional)
+      description: Select the ntfy notification topic to receive Frigate alerts. Leave empty to disable ntfy notifications.
+      default: ""
+      selector:
+        entity:
+          filter:
+            domain: notify
+            integration: ntfy
     base_url:
       name: Base URL (Optional)
       description: |
@@ -969,6 +978,8 @@ variables:
   ios_live_view: !input ios_live_view
   android_auto: !input android_auto
   notify_group: !input notify_group
+  notify_ntfy: !input notify_ntfy
+  ntfy_enabled: "{{ notify_ntfy != '' }}"
   notify_group_target: "{{ notify_group | lower | regex_replace('^notify\\.', '') | replace(' ','_') }}"
   telegram_chat_id: !input notify_telegram_chat_id
   telegram_config_entry: !input notify_telegram_config_entry
@@ -1124,6 +1135,23 @@ actions:
               video: !input video
           - alias: "Send GenAI Notification"
             sequence:
+              - choose:
+                  - conditions: "{{ ntfy_enabled }}"
+                    sequence:
+                      - action: ntfy.publish
+                        target:
+                          entity_id: "{{ notify_ntfy }}"
+                        data:
+                          title: "{{ title }}"
+                          message: "{{ message }}"
+                          priority: 4
+                          tags:
+                            - camera
+                            - "{{ camera }}"
+                          click: >-
+                            {{ tap_action if tap_action.startswith('http') else base_url ~ tap_action if base_url else '' }}
+                          attach: "{{ attachment }}"
+                          sequence_id: "{{ id }}"
               - choose:
                   - conditions: "{{ telegram }}"
                     sequence:
@@ -1496,6 +1524,23 @@ actions:
                         sequence: !input "custom_action_auto"
                   - alias: "Send Notification"
                     sequence:
+                      - choose:
+                          - conditions: "{{ ntfy_enabled }}"
+                            sequence:
+                              - action: ntfy.publish
+                                target:
+                                  entity_id: "{{ notify_ntfy }}"
+                                data:
+                                  title: "{{ title }}"
+                                  message: "{{ message }}"
+                                  priority: 4
+                                  tags:
+                                    - camera
+                                    - "{{ camera }}"
+                                  click: >-
+                                    {{ tap_action if tap_action.startswith('http') else base_url ~ tap_action if base_url else '' }}
+                                  attach: "{{ attachment }}"
+                                  sequence_id: "{{ id }}"
                       - choose:
                           - conditions: "{{ telegram }}"
                             sequence:
@@ -1942,6 +1987,23 @@ actions:
                                     seconds: "{{final_delay}}"
                         - alias: "Update Notification"
                           sequence:
+                            - choose:
+                                - conditions: "{{ ntfy_enabled }}"
+                                  sequence:
+                                    - action: ntfy.publish
+                                      target:
+                                        entity_id: "{{ notify_ntfy }}"
+                                      data:
+                                        title: "{{ title }}"
+                                        message: "{{ message }}"
+                                        priority: 4
+                                        tags:
+                                          - camera
+                                          - "{{ camera }}"
+                                        click: >-
+                                          {{ tap_action if tap_action.startswith('http') else base_url ~ tap_action if base_url else '' }}
+                                        attach: "{{ attachment }}"
+                                        sequence_id: "{{ id }}"
                             - choose:
                                 - conditions: "{{ telegram }}"
                                   sequence:
