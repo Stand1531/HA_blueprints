@@ -1,5 +1,5 @@
 blueprint:
-  name: Frigate Notifications (0.14.0.3)
+  name: Frigate Notifications (0.14.0.3a)
   author: SgtBatten
   homeassistant:
     min_version: 2024.11.0
@@ -46,14 +46,6 @@ blueprint:
             integration: frigate
             domain: camera
           multiple: true
-    notify_device:
-      name: Mobile Device (Optional)
-      description: Optional fallback destination when ntfy and Notification Group are not selected. You do not need to select a mobile device when using ntfy.
-      default: false
-      selector:
-        device:
-          filter:
-            integration: mobile_app
     notify_group:
       name: Notification Group or Android/Fire TV (Optional)
       description: |
@@ -1171,53 +1163,6 @@ actions:
                               caption: "{{message}}"
                               parse_mode: plain_text
                               url: "{{attachment|replace( base_url, telegram_base_url )}}"
-                  - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
-                    sequence:
-                      - device_id: !input notify_device
-                        domain: mobile_app
-                        type: notify
-                        title: "{{title}}"
-                        message: "{{message}}"
-                        data:
-                          tag: "{{ tag }}"
-                          group: "{{ group }}"
-                          # Android Specific
-                          subject: "{{subtitle}}"
-                          image: "{{attachment}}"
-                          video: "{{video}}"
-                          clickAction: "{{tap_action}}"
-                          ttl: 0
-                          priority: high
-                          sticky: "{{sticky}}"
-                          channel: "{{'alarm_stream' if critical else channel}}"
-                          car_ui: "{{android_auto}}"
-                          # iOS Specific
-                          subtitle: "{{subtitle}}"
-                          url: "{{tap_action}}"
-                          attachment:
-                            url: "{{video if video else attachment }}"
-                            content-type: "{{ 'application/vnd.apple.mpegurl' if 'm3u8' in video else 'mp4' if 'mp4' in video else 'jpeg' if 'jpg' in attachment else 'gif' }}"
-                          push:
-                            sound:
-                              name: "{{sound}}"
-                              volume: "{{ iif(sound == 'none', 0, volume) }}"
-                              critical: "{{ iif(critical, 1, 0) }}"
-                          entity_id: "{{ios_live_view}}"
-                          # Actions
-                          actions:
-                            - action: URI
-                              title: "{{button_1}}"
-                              uri: "{{url_1}}"
-                              icon: "{{icon_1}}"
-                            - action: URI
-                              title: "{{button_2}}"
-                              uri: "{{url_2}}"
-                              icon: "{{icon_2}}"
-                            - action: "{{ 'URI' if '/' in url_3 else url_3 }}"
-                              title: "{{button_3}}"
-                              uri: "{{url_3}}"
-                              icon: "{{icon_3}}"
-                              destructive: true
                   - conditions: "{{ tv }}"
                     sequence:
                       - action: "notify.{{ notify_group_target }}"
@@ -1438,7 +1383,7 @@ actions:
                             Attachment: {{attachment if not redacted or not base_url else attachment |replace(base_url, 'REDACTED')}}
                             Video: {{video if not redacted or not base_url else video |replace(base_url, 'REDACTED')}}, 
                             iOS URL: {{(video if not redacted or not base_url else video |replace(base_url, 'REDACTED')) if video|length >0 else attachment if not redacted or not base_url else attachment |replace(base_url, 'REDACTED')}}
-                            Target: {{'ntfy: ' + notify_ntfy if ntfy_enabled else ('group (input/formatted): ' + notify_group + '/' + notify_group_target if notify_group else 'Mobile Device')}}, 
+                            Target: {{'ntfy: ' + notify_ntfy if ntfy_enabled else ('group (input/formatted): ' + notify_group + '/' + notify_group_target if notify_group else 'No destination selected')}}, 
                             Cooldown: {{cooldown}}s, 
                             Initial Delay: {{initial_delay}}s, 
                             Color: {{color}}, 
@@ -1560,55 +1505,6 @@ actions:
                                       caption: "{{message}}"
                                       parse_mode: plain_text
                                       url: "{{attachment|replace( base_url, telegram_base_url )}}"
-                          - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
-                            sequence:
-                              - device_id: !input notify_device
-                                domain: mobile_app
-                                type: notify
-                                title: "{{title}}"
-                                message: "{{message}}"
-                                data:
-                                  tag: "{{ id }}"
-                                  group: "{{ group }}"
-                                  color: "{{color}}"
-                                  # Android Specific
-                                  subject: "{{subtitle}}"
-                                  image: "{{attachment}}"
-                                  video: "{{video}}"
-                                  clickAction: "{{tap_action}}"
-                                  ttl: 0
-                                  priority: high
-                                  notification_icon: "{{icon}}"
-                                  sticky: "{{sticky}}"
-                                  channel: "{{'alarm_stream' if critical else channel}}"
-                                  car_ui: "{{android_auto}}"
-                                  # iOS Specific
-                                  subtitle: "{{subtitle}}"
-                                  url: "{{tap_action}}"
-                                  attachment:
-                                    url: "{{video if video else attachment }}"
-                                    content-type: "{{ 'application/vnd.apple.mpegurl' if 'm3u8' in video else 'mp4' if 'mp4' in video else 'jpeg' if 'jpg' in attachment else 'gif' }}"
-                                  push:
-                                    sound:
-                                      name: "{{sound}}"
-                                      volume: "{{ iif(sound == 'none', 0, volume) }}"
-                                      critical: "{{ iif(critical, 1, 0) }}"
-                                  entity_id: "{{ios_live_view}}"
-                                  # Actions
-                                  actions:
-                                    - action: URI
-                                      title: "{{button_1}}"
-                                      uri: "{{url_1}}"
-                                      icon: "{{icon_1}}"
-                                    - action: URI
-                                      title: "{{button_2}}"
-                                      uri: "{{url_2}}"
-                                      icon: "{{icon_2}}"
-                                    - action: "{{ 'URI' if '/' in url_3 else url_3 }}"
-                                      title: "{{button_3}}"
-                                      uri: "{{url_3}}"
-                                      icon: "{{icon_3}}"
-                                      destructive: true
                           - conditions: "{{ tv }}"
                             sequence:
                               - action: "notify.{{ notify_group_target }}"
@@ -1722,17 +1618,6 @@ actions:
                         then:
                           sequence:
                             - choose:
-                                - conditions: "{{ not notify_group_target }}"
-                                  sequence:
-                                    - device_id: !input notify_device
-                                      domain: mobile_app
-                                      type: notify
-                                      message: "{{'TTS'}}"
-                                      data:
-                                        tag: "{{ id }}{{'-tts'}}"
-                                        channel: "{{'alarm_stream' if critical else channel}}"
-                                        alert_once: "{{ alert_once }}"
-                                        tts_text: "{{message}}"
                               default:
                                 - action: "notify.{{ notify_group_target }}"
                                   data:
@@ -2091,56 +1976,6 @@ actions:
                                                       ["{{button_2}}", "{{url_2}}"],
                                                     ]
                                                   - [["{{button_3}}", "{{url_3}}"]]
-                                - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
-                                  sequence:
-                                    - device_id: !input notify_device
-                                      domain: mobile_app
-                                      type: notify
-                                      title: "{{title}}"
-                                      message: "{{message}}"
-                                      data:
-                                        tag: "{{ id }}"
-                                        group: "{{ group }}"
-                                        color: "{{color}}"
-                                        # Android Specific
-                                        subject: "{{subtitle}}"
-                                        image: "{{attachment}}"
-                                        video: "{{video}}"
-                                        clickAction: "{{tap_action}}"
-                                        ttl: 0
-                                        priority: high
-                                        alert_once: "{{ alert_once }}"
-                                        notification_icon: "{{icon}}"
-                                        sticky: "{{sticky}}"
-                                        channel: "{{'alarm_stream' if critical else channel}}"
-                                        car_ui: "{{android_auto}}"
-                                        # iOS Specific
-                                        subtitle: "{{subtitle}}"
-                                        url: "{{tap_action}}"
-                                        attachment:
-                                          url: "{{video if video else attachment }}"
-                                          content-type: "{{ 'application/vnd.apple.mpegurl' if 'm3u8' in video else 'mp4' if 'mp4' in video else 'jpeg' if 'jpg' in attachment else 'gif' }}"
-                                        push:
-                                          sound:
-                                            name: "{{ iif(silent_update, 'none', sound) }}"
-                                            volume: "{{ iif((silent_update or sound == 'none'), 0, volume) }}"
-                                            critical: "{{ iif(critical, 1, 0) }}"
-                                        entity_id: "{{ios_live_view}}"
-                                        # Actions
-                                        actions:
-                                          - action: URI
-                                            title: "{{button_1}}"
-                                            uri: "{{url_1}}"
-                                            icon: "{{icon_1}}"
-                                          - action: URI
-                                            title: "{{button_2}}"
-                                            uri: "{{url_2}}"
-                                            icon: "{{icon_2}}"
-                                          - action: "{{ 'URI' if '/' in url_3 else url_3 }}"
-                                            title: "{{button_3}}"
-                                            uri: "{{url_3}}"
-                                            icon: "{{icon_3}}"
-                                            destructive: true
                                 - conditions: "{{ tv }}"
                                   sequence:
                                     - action: "notify.{{ notify_group_target }}"
@@ -2257,18 +2092,6 @@ actions:
                               then:
                                 sequence:
                                   - choose:
-                                      - conditions: "{{ not notify_group_target }}"
-                                        sequence:
-                                          - device_id: !input notify_device
-                                            domain: mobile_app
-                                            type: notify
-                                            message: "{{'TTS'}}"
-                                            data:
-                                              tag: "{{ id }}{{'-loitering-tts' if loitering}}"
-                                              channel: "{{'alarm_stream' if critical else channel}}"
-                                              alert_once: "{{ alert_once }}"
-                                              tts_text: "{{message}}"
-
                                     default:
                                       - action: "notify.{{ notify_group_target }}"
                                         data:
