@@ -1,5 +1,5 @@
 blueprint:
-  name: Frigate Notifications (0.14.0.2z)
+  name: Frigate Notifications (0.14.0.3)
   author: SgtBatten
   homeassistant:
     min_version: 2024.11.0
@@ -18,10 +18,10 @@ blueprint:
 
     ### Required Configuration Options:
       - Frigate Cameras
-      - Mobile Device (Running HA Companion App)
+      - A notification destination: ntfy, a mobile device, or a notification group
 
     ### Features:
-      - Easily select the camera entities or mobile device using a drop-down menu.
+      - Easily select camera entities and your preferred notification destination.
       - Configure multiple cameras in one automation. 
 
       For the full features list visit the [GitHub Repository][1]
@@ -47,8 +47,8 @@ blueprint:
             domain: camera
           multiple: true
     notify_device:
-      name: Mobile Device
-      description: Select a device that runs the official Home Assistant app to receive notifications. If you wish to notify a group of devices and/or Android/Fire TV use the field below to override this selection. This will be ignored in that case but is still required.
+      name: Mobile Device (Optional)
+      description: Optional fallback destination when ntfy and Notification Group are not selected. You do not need to select a mobile device when using ntfy.
       default: false
       selector:
         device:
@@ -1171,7 +1171,7 @@ actions:
                               caption: "{{message}}"
                               parse_mode: plain_text
                               url: "{{attachment|replace( base_url, telegram_base_url )}}"
-                  - conditions: "{{ not notify_group_target }}"
+                  - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
                     sequence:
                       - device_id: !input notify_device
                         domain: mobile_app
@@ -1438,7 +1438,7 @@ actions:
                             Attachment: {{attachment if not redacted or not base_url else attachment |replace(base_url, 'REDACTED')}}
                             Video: {{video if not redacted or not base_url else video |replace(base_url, 'REDACTED')}}, 
                             iOS URL: {{(video if not redacted or not base_url else video |replace(base_url, 'REDACTED')) if video|length >0 else attachment if not redacted or not base_url else attachment |replace(base_url, 'REDACTED')}}
-                            Target: {{'group (input/formatted): ' + notify_group + '/' + notify_group_target + ', ' if notify_group else 'Mobile Device'}}, 
+                            Target: {{'ntfy: ' + notify_ntfy if ntfy_enabled else ('group (input/formatted): ' + notify_group + '/' + notify_group_target if notify_group else 'Mobile Device')}}, 
                             Cooldown: {{cooldown}}s, 
                             Initial Delay: {{initial_delay}}s, 
                             Color: {{color}}, 
@@ -1560,7 +1560,7 @@ actions:
                                       caption: "{{message}}"
                                       parse_mode: plain_text
                                       url: "{{attachment|replace( base_url, telegram_base_url )}}"
-                          - conditions: "{{ not notify_group_target }}"
+                          - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
                             sequence:
                               - device_id: !input notify_device
                                 domain: mobile_app
@@ -1718,7 +1718,7 @@ actions:
                                     uri: "{{url_3}}"
                                     icon: "{{icon_3}}"
                                     destructive: true
-                      - if: "{{tts and (not tts_helper or not alert_once or (tts_helper and id not in states(tts_helper)))}}"
+                      - if: "{{tts and not ntfy_enabled and (not tts_helper or not alert_once or (tts_helper and id not in states(tts_helper)))}}"
                         then:
                           sequence:
                             - choose:
@@ -2091,7 +2091,7 @@ actions:
                                                       ["{{button_2}}", "{{url_2}}"],
                                                     ]
                                                   - [["{{button_3}}", "{{url_3}}"]]
-                                - conditions: "{{ not notify_group_target }}"
+                                - conditions: "{{ not notify_group_target and not ntfy_enabled }}"
                                   sequence:
                                     - device_id: !input notify_device
                                       domain: mobile_app
@@ -2253,7 +2253,7 @@ actions:
                                           icon: "{{icon_3}}"
                                           destructive: true
 
-                            - if: "{{tts and (not tts_helper or not alert_once or (tts_helper and id not in states(tts_helper)))}}"
+                            - if: "{{tts and not ntfy_enabled and (not tts_helper or not alert_once or (tts_helper and id not in states(tts_helper)))}}"
                               then:
                                 sequence:
                                   - choose:
